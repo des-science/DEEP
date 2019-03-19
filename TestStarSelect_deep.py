@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[12]:
 
 
 # Make a catalogue with real and model PSFs + magnitude etc, for PSF testing script
 # Sex file and star file in des read_files() needs to be altered
+
+get_ipython().system('jupyter nbconvert --to script TestStarSelect_deep.ipynb')
 
 #! /usr/bin/env python
 get_ipython().run_line_magic('matplotlib', 'inline')
@@ -86,29 +88,40 @@ import pandas
 """
 
 
-# In[9]:
+# In[36]:
 
 
 def read_files(filter):
     
-    sex_file="/global/cscratch1/sd/amichoi/UltraVISTA/cat/UVISTA_%s_21_01_16_psfcat.fits" % (filter)   
-    
+    #sex_file="/global/cscratch1/sd/amichoi/UltraVISTA/cat/UVISTA_%s_21_01_16_psfcat.fits" % (filter)   
+    sex_file="/global/cscratch1/sd/amichoi/VIDEO/cat/VIDEO_%s_10_36.80_-5.01_psfcat.fits" % (filter) 
+        
     dat = fits.open(sex_file)
     cols = dat[2].columns
+    #print(cols)
     sex=Table(dat[2].data)
     print("Length of sex file: ", len(sex))
 
     #read in list of stars made from Sextractor and PSFEx
-    star_file="/global/homes/a/aamon/DES/DEStests/DEEP/deeppsfs/UltraVista/UVISTA_%s_21_01_16_psfex-starlist.fits" % (filter)
+    #star_file="/global/homes/a/aamon/DES/DEStests/DEEP/deeppsfs/UltraVista/UVISTA_%s_21_01_16_psfex-starlist.fits" % (filter)
+    star_file="/global/cscratch1/sd/amichoi/VIDEO/psf/VIDEO_%s_10_36.80_-5.01_psfex-starlist.fits" % (filter)
 
     dat = fits.open(star_file)
     cols = dat[2].columns
+    #print(cols)
     star=Table(dat[2].data)
     print("Length of star file: ", len(star))
 
-    sex.rename_column('XWIN_IMAGE', 'X')
-    star.rename_column('X_IMAGE', 'X')   
-    sexstarmerge = join(sex, star, keys=['X'],  join_type='inner') #
+    print(sex['X_IMAGE'],star['X_IMAGE'])
+    #sex.rename_column('XWIN_IMAGE', 'X')  #USE  FOR ULTRAVISTA
+    #star.rename_column('X_IMAGE', 'X')   
+    #sexstarmerge = join(sex, star, keys=['X'],  join_type='inner') #
+    
+    sex['X_IMAGE']=sex['X_IMAGE'].astype(int)
+    star['X_IMAGE']=star['X_IMAGE'].astype(int)
+    sex['Y_IMAGE']=sex['Y_IMAGE'].astype(int)
+    star['Y_IMAGE']=star['Y_IMAGE'].astype(int)
+    sexstarmerge = join(sex, star, keys=['X_IMAGE','Y_IMAGE'],  join_type='inner')
     
     print("length of merged cat: ", len(sexstarmerge))
  
@@ -119,7 +132,7 @@ def read_files(filter):
     return sexstarmerge, sex,star
 
 
-# In[ ]:
+# In[17]:
 
 
 """import seaborn as sns; sns.set()
@@ -139,18 +152,18 @@ plt.ylim(10,10**7 )
 plt.legend(stardf['FLAGS_PSF'])"""
 
 
-# In[10]:
+# In[37]:
 
 
-filter=['H', 'J', 'Ks', 'Y']
+filter=['H', 'J', 'Ks']#, 'Y']
 numfilts=len(filter)
 
 #make figure for fwhm-snr
-fig, axs = plt.subplots(4, figsize=(4, 18), facecolor='w', edgecolor='k')
+fig, axs = plt.subplots(3, figsize=(4, 18), facecolor='w', edgecolor='k')
 fig.subplots_adjust(hspace = .1, wspace=.5)
-fig2, axs2 = plt.subplots(4, figsize=(4, 18), facecolor='w', edgecolor='k')
+fig2, axs2 = plt.subplots(3, figsize=(4, 18), facecolor='w', edgecolor='k')
 fig2.subplots_adjust(hspace = .1, wspace=.5)
-fig3, axs3 = plt.subplots(4, figsize=(4, 18), facecolor='w', edgecolor='k')
+fig3, axs3 = plt.subplots(3, figsize=(4, 18), facecolor='w', edgecolor='k')
 fig3.subplots_adjust(hspace = .1, wspace=.5)
 
 #make figure for flux-size
@@ -161,12 +174,6 @@ for i in range(numfilts):
     
     #sexdata,stardata=read_files(filt)
     sexstar, sex, star =read_files(filt)
-    
-    print(sexstar['FWHM_PSF'][np.where(sexstar['FLAGS_PSF']==0)])
-    print(sexstar['SNR_PSF'][np.where(sexstar['FLAGS_PSF']==0)])
-    print(sexstar['FLUX_APER'][[np.where(sexstar['FLAGS_PSF']==0)],0])
-    print(sexstar['FLUX_RADIUS'][np.where(sexstar['FLAGS_PSF']==0)])
-    print(sexstar['FLUXERR_APER'][[np.where(sexstar['FLAGS_PSF']==0)],0])
     
     #print(ssdf)
     print(len(sexstar['FLAGS_PSF'][np.where(sexstar['FLAGS_PSF']!=0)]))
@@ -208,7 +215,10 @@ for i in range(numfilts):
     axs3[i].set_ylabel('FLUX_RADIUS')
     axs3[i].set_xlabel('MAG_APER')
     axs3[i].set_title(filt)
-  
+
+fig.savefig("Figs/VIDEO_SNR_psffwhm.pdf")    
+fig2.savefig("Figs/VIDEO_SN_size.pdf")       
+fig3.savefig("Figs/VIDEO_size_mag.pdf")
 
 
 # In[ ]:
